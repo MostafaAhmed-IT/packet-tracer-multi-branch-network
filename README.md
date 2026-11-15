@@ -2,6 +2,7 @@
 
 
 A complete four-branch company network designed and configured in Cisco Packet Tracer as the final project of a hands-on CCNA course.
+![Network Topology](topology.png)
 
 
 ## Topology overview
