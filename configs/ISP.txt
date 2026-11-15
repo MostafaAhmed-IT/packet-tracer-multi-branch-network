@@ -1,0 +1,64 @@
+! =====================================================================
+! ISP — Central router joining the four branches
+! Final Project — Multi-Branch Network Design, Cisco Packet Tracer
+! Paste-ready configuration, in the order the project was built:
+! serial links -> OSPF -> default routes.
+! On every link the ISP end is .100, it demands CHAP, and it supplies
+! the serial clock (clock rate 64000) — the DCE side of the project.
+! =====================================================================
+configure terminal
+hostname ISP
+!
+! --- Serial toward R1 (branch 1) ---
+interface s2/0
+ no shutdown
+ ip address 201.10.10.100 255.255.255.0
+ encapsulation ppp
+ ppp authentication chap
+ clock rate 64000
+!
+! --- Serial toward R2 (branch 2) ---
+interface s3/0
+ no shutdown
+ ip address 201.20.20.100 255.255.255.0
+ encapsulation ppp
+ ppp authentication chap
+ clock rate 64000
+!
+! --- Serial toward R3 (branch 3) ---
+interface s5/0
+ no shutdown
+ ip address 201.30.30.100 255.255.255.0
+ encapsulation ppp
+ ppp authentication chap
+ clock rate 64000
+!
+! --- Serial toward R4 (branch 4) ---
+interface s4/0
+ no shutdown
+ ip address 201.40.40.100 255.255.255.0
+ encapsulation ppp
+ ppp authentication chap
+ clock rate 64000
+!
+! --- Routing: OSPF process 1, area 0, on all four WAN links ---
+router ospf 1
+ network 201.10.10.0 0.0.0.255 area 0
+ network 201.20.20.0 0.0.0.255 area 0
+ network 201.30.30.0 0.0.0.255 area 0
+ network 201.40.40.0 0.0.0.255 area 0
+!
+! --- One default route toward each branch, as built in the project:
+!     the mirror image of each branch's default route toward the ISP.
+!     OSPF carries the real routes; these act as a catch-all behind it. ---
+ip route 0.0.0.0 0.0.0.0 201.10.10.200
+ip route 0.0.0.0 0.0.0.0 201.20.20.200
+ip route 0.0.0.0 0.0.0.0 201.30.30.200
+ip route 0.0.0.0 0.0.0.0 201.40.40.200
+!
+end
+!
+! --- After configuring, back this router up to Server0 ---
+! copy run tftp
+!   Address or name of remote host []? 192.168.1.1
+!   Destination filename [ISP-config]?  (press Enter)

@@ -1,0 +1,72 @@
+! =====================================================================
+! R4 — Branch 4 router (VLANs 130, 140, 150, 160)
+! Final Project — Multi-Branch Network Design, Cisco Packet Tracer
+! Paste-ready configuration, in the order the project was built:
+! LAN subinterfaces -> DHCP -> WAN serial -> OSPF -> default route.
+! (In the course build, R3 and R4 were configured by pasting a prepared
+! Notepad script per router — this file is that script.)
+! =====================================================================
+configure terminal
+hostname R4
+!
+! --- LAN side: router-on-a-stick ---
+interface f0/0
+ no shutdown
+!
+interface f0/0.130
+ encapsulation dot1Q 130
+ ip address 192.168.130.100 255.255.255.0
+!
+interface f0/0.140
+ encapsulation dot1Q 140
+ ip address 192.168.140.100 255.255.255.0
+!
+interface f0/0.150
+ encapsulation dot1Q 150
+ ip address 192.168.150.100 255.255.255.0
+!
+interface f0/0.160
+ encapsulation dot1Q 160
+ ip address 192.168.160.100 255.255.255.0
+!
+! --- DHCP: one pool per VLAN (no DNS server is set in this project) ---
+ip dhcp pool v130
+ network 192.168.130.0 255.255.255.0
+ default-router 192.168.130.100
+!
+ip dhcp pool v140
+ network 192.168.140.0 255.255.255.0
+ default-router 192.168.140.100
+!
+ip dhcp pool v150
+ network 192.168.150.0 255.255.255.0
+ default-router 192.168.150.100
+!
+ip dhcp pool v160
+ network 192.168.160.0 255.255.255.0
+ default-router 192.168.160.100
+!
+! --- WAN side: PPP toward the ISP; this router answers CHAP with the
+!     credential below (the ISP supplies the clock, so no clock rate here) ---
+username ISP password 1234
+interface s2/0
+ no shutdown
+ ip address 201.40.40.200 255.255.255.0
+ encapsulation ppp
+!
+! --- Routing: OSPF process 1, area 0, plus a default route to the ISP ---
+router ospf 1
+ network 201.40.40.0 0.0.0.255 area 0
+ network 192.168.130.0 0.0.0.255 area 0
+ network 192.168.140.0 0.0.0.255 area 0
+ network 192.168.150.0 0.0.0.255 area 0
+ network 192.168.160.0 0.0.0.255 area 0
+!
+ip route 0.0.0.0 0.0.0.0 201.40.40.100
+!
+end
+!
+! --- After configuring, back this router up to Server0 ---
+! copy run tftp
+!   Address or name of remote host []? 192.168.1.1
+!   Destination filename [R4-config]?  (press Enter)

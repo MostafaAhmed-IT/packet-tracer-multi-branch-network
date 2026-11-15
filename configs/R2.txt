@@ -1,0 +1,81 @@
+! =====================================================================
+! R2 — Branch 2 router (VLANs 50, 60, 70, 80)
+! Final Project — Multi-Branch Network Design, Cisco Packet Tracer
+! Paste-ready configuration, in the order the project was built:
+! LAN subinterfaces -> DHCP -> WAN serial -> OSPF -> default route
+! -> ACL.
+! =====================================================================
+configure terminal
+hostname R2
+!
+! --- LAN side: router-on-a-stick ---
+interface f0/0
+ no shutdown
+!
+interface f0/0.50
+ encapsulation dot1Q 50
+ ip address 192.168.50.100 255.255.255.0
+!
+interface f0/0.60
+ encapsulation dot1Q 60
+ ip address 192.168.60.100 255.255.255.0
+!
+interface f0/0.70
+ encapsulation dot1Q 70
+ ip address 192.168.70.100 255.255.255.0
+!
+interface f0/0.80
+ encapsulation dot1Q 80
+ ip address 192.168.80.100 255.255.255.0
+!
+! --- DHCP: one pool per VLAN (no DNS server is set in this project) ---
+ip dhcp pool v50
+ network 192.168.50.0 255.255.255.0
+ default-router 192.168.50.100
+!
+ip dhcp pool v60
+ network 192.168.60.0 255.255.255.0
+ default-router 192.168.60.100
+!
+ip dhcp pool v70
+ network 192.168.70.0 255.255.255.0
+ default-router 192.168.70.100
+!
+ip dhcp pool v80
+ network 192.168.80.0 255.255.255.0
+ default-router 192.168.80.100
+!
+! --- WAN side: PPP toward the ISP; this router answers CHAP with the
+!     credential below (the ISP supplies the clock, so no clock rate here) ---
+username ISP password 1234
+interface s2/0
+ no shutdown
+ ip address 201.20.20.200 255.255.255.0
+ encapsulation ppp
+!
+! --- Routing: OSPF process 1, area 0, plus a default route to the ISP ---
+router ospf 1
+ network 201.20.20.0 0.0.0.255 area 0
+ network 192.168.50.0 0.0.0.255 area 0
+ network 192.168.60.0 0.0.0.255 area 0
+ network 192.168.70.0 0.0.0.255 area 0
+ network 192.168.80.0 0.0.0.255 area 0
+!
+ip route 0.0.0.0 0.0.0.0 201.20.20.100
+!
+! --- ACL: scal (named extended — lowercase, as built), applied inbound
+!     on the serial, where traffic from branches 3 and 4 arrives ---
+ip access-list extended scal
+ deny icmp 192.168.130.0 0.0.0.255 192.168.80.0 0.0.0.255
+ deny icmp 192.168.140.0 0.0.0.255 192.168.80.0 0.0.0.255
+ permit ip any any
+!
+interface s2/0
+ ip access-group scal in
+!
+end
+!
+! --- After configuring, back this router up to Server0 ---
+! copy run tftp
+!   Address or name of remote host []? 192.168.1.1
+!   Destination filename [R2-config]?  (press Enter)

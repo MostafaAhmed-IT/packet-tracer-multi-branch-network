@@ -1,0 +1,89 @@
+! =====================================================================
+! Per-branch switch template — Final Project, Cisco Packet Tracer
+! =====================================================================
+! Every branch repeats the same recipe on its three switches:
+! one VTP server creates the branch's four VLANs, the other two
+! switches learn them as clients, inter-switch links are trunks
+! bundled with EtherChannel, the PVST+ root is split between the
+! branch's switches, and access ports take two PCs per VLAN.
+!
+! Replace the placeholders with the branch's own VLANs:
+!   Branch 1 — Switch0 (server), Switch1, Switch2 :  <VLAN_A>=10,  <VLAN_B>=20,  <VLAN_C>=30,  <VLAN_D>=40
+!   Branch 2 — Switch3 (server), Switch4, Switch5 :  <VLAN_A>=50,  <VLAN_B>=60,  <VLAN_C>=70,  <VLAN_D>=80
+!   Branch 3 — Switch6 (server), Switch7, Switch8 :  <VLAN_A>=90,  <VLAN_B>=100, <VLAN_C>=110, <VLAN_D>=120
+!   Branch 4 — Switch9 (server), Switch10, Switch11: <VLAN_A>=130, <VLAN_B>=140, <VLAN_C>=150, <VLAN_D>=160
+!
+! Port roles vary a little per switch, exactly as built: the server
+! switch trunks on f0/1 - 9; client switches use a pair (f0/5 - 6) or
+! four links (f0/5 - 8) as their uplink bundle, and access pairs from
+! f0/1 - 2 onward. No switch in this project gets an SVI or any
+! management configuration.
+! =====================================================================
+
+! ---------------------------------------------------------------------
+! PART 1 — the branch's VTP SERVER switch (one per branch)
+! ---------------------------------------------------------------------
+configure terminal
+vtp domain scal
+vtp password 1234
+vtp mode server
+!
+vlan <VLAN_A>
+vlan <VLAN_B>
+vlan <VLAN_C>
+vlan <VLAN_D>
+!
+! Ports toward the other switches and the router are trunks
+interface range f0/1 - 9
+ switchport mode trunk
+!
+end
+
+! ---------------------------------------------------------------------
+! PART 2 — the branch's two CLIENT switches (same block on each)
+! ---------------------------------------------------------------------
+configure terminal
+vtp domain scal
+vtp password 1234
+vtp mode client
+!
+! Uplink toward the neighbouring switch: trunks first, then bundle
+! them with LACP. As built, the bundle is a pair (channel-group 1,
+! e.g. Switch4) or four links (channel-group 2, e.g. Switch8) —
+! keep the group number the same on both ends of the bundle.
+interface range f0/5 - 6
+ switchport mode trunk
+ channel-group 1 mode active
+!
+! PVST+ root split: this switch is root for the first half of the
+! branch's VLANs and backup root for the second half; the partner
+! switch holds the mirror image (primary/secondary exchanged).
+spanning-tree mode pvst
+spanning-tree vlan <VLAN_A>,<VLAN_B> root primary
+spanning-tree vlan <VLAN_C>,<VLAN_D> root secondary
+!
+! Access ports: two PCs per VLAN. The pairs below are the pattern as
+! built (f0/1 - 2, f0/3 - 4, and so on); on a switch that also carries
+! an uplink bundle, the pairs simply start on the ports that switch
+! uses for PCs — a port is never both a bundle member and an access
+! port.
+interface range f0/1 - 2
+ switchport mode access
+ switchport access vlan <VLAN_A>
+!
+interface range f0/3 - 4
+ switchport mode access
+ switchport access vlan <VLAN_B>
+!
+interface range f0/5 - 6
+ switchport mode access
+ switchport access vlan <VLAN_C>
+!
+interface range f0/7 - 8
+ switchport mode access
+ switchport access vlan <VLAN_D>
+!
+end
+!
+! Verify on any switch: show vtp status - show vlan brief -
+! show etherchannel summary - show spanning-tree

@@ -1,0 +1,87 @@
+! =====================================================================
+! R1 — Branch 1 router (VLANs 10, 20, 30, 40 + the server network)
+! Final Project — Multi-Branch Network Design, Cisco Packet Tracer
+! Paste-ready configuration, in the order the project was built:
+! LAN subinterfaces -> DHCP -> WAN serial -> OSPF -> default route
+! -> services -> ACL.
+! =====================================================================
+configure terminal
+hostname R1
+!
+! --- LAN side: router-on-a-stick, and the untagged server network ---
+interface f0/0
+ no shutdown
+ ip address 192.168.1.100 255.255.255.0
+!
+interface f0/0.10
+ encapsulation dot1Q 10
+ ip address 192.168.10.100 255.255.255.0
+!
+interface f0/0.20
+ encapsulation dot1Q 20
+ ip address 192.168.20.100 255.255.255.0
+!
+interface f0/0.30
+ encapsulation dot1Q 30
+ ip address 192.168.30.100 255.255.255.0
+!
+interface f0/0.40
+ encapsulation dot1Q 40
+ ip address 192.168.40.100 255.255.255.0
+!
+! --- DHCP: one pool per VLAN (no DNS server is set in this project) ---
+ip dhcp pool v10
+ network 192.168.10.0 255.255.255.0
+ default-router 192.168.10.100
+!
+ip dhcp pool v20
+ network 192.168.20.0 255.255.255.0
+ default-router 192.168.20.100
+!
+ip dhcp pool v30
+ network 192.168.30.0 255.255.255.0
+ default-router 192.168.30.100
+!
+ip dhcp pool v40
+ network 192.168.40.0 255.255.255.0
+ default-router 192.168.40.100
+!
+! --- WAN side: PPP toward the ISP; this router answers CHAP with the
+!     credential below (the ISP supplies the clock, so no clock rate here) ---
+username ISP password 1234
+interface s2/0
+ no shutdown
+ ip address 201.10.10.200 255.255.255.0
+ encapsulation ppp
+!
+! --- Routing: OSPF process 1, area 0, plus a default route to the ISP ---
+router ospf 1
+ network 201.10.10.0 0.0.0.255 area 0
+ network 192.168.1.0 0.0.0.255 area 0
+ network 192.168.10.0 0.0.0.255 area 0
+ network 192.168.20.0 0.0.0.255 area 0
+ network 192.168.30.0 0.0.0.255 area 0
+ network 192.168.40.0 0.0.0.255 area 0
+!
+ip route 0.0.0.0 0.0.0.0 201.10.10.100
+!
+! --- Services: syslog to Server0; NTP from Server0 (project canvas) ---
+logging host 192.168.1.1
+ntp server 192.168.1.1
+!
+! --- ACL: SCAL (named extended), applied inbound on the serial ---
+ip access-list extended SCAL
+ deny tcp host 192.168.120.2 host 192.168.1.1 eq 80
+ deny icmp host 192.168.150.2 host 192.168.1.1
+ deny icmp 192.168.70.0 0.0.0.255 192.168.10.0 0.0.0.255
+ permit ip any any
+!
+interface s2/0
+ ip access-group SCAL in
+!
+end
+!
+! --- After configuring, back this router up to Server0 ---
+! copy run tftp
+!   Address or name of remote host []? 192.168.1.1
+!   Destination filename [R1-config]?  (press Enter)
